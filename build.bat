@@ -1,4 +1,4 @@
-#build checks to check for errors in file/codes
+#build checks to check for errors in file/code
 @echo off
 REM OutCast build script - nightly/weekly build checks
 setlocal
@@ -20,4 +20,5 @@ goto :eof
 :error
 echo Build failed.
 exit /b 1
+
 
