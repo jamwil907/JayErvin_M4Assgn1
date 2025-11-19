@@ -1,3 +1,4 @@
+#login information - user01
 <?php
 session_start();
 if (isset($_SESSION['user'])) {
@@ -43,3 +44,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 </body>
 </html>
+
