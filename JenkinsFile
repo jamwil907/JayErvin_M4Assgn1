@@ -14,31 +14,32 @@ pipeline {
                 }
     }
 
-stage('BAT Dependency Check') {
-    steps {
-        sh '''
-            echo "Checking .bat files dependencies..."
+        stage('Shell Script Dependency Check') {
+            steps {
+                sh '''
+                    echo "Checking .sh file dependencies..."
 
-            # Check if any .bat files exist
-            if ls *.bat >/dev/null 2>&1; then
-                echo "Found .bat files:"
-                ls *.bat
+                    # Check if the shell script exists
+                    if [ -f build-container.sh ]; then
+                        echo "Found build-container.sh"
 
-                # Check that each .bat file is not empty
-                for FILE in *.bat; do
-                    if [ ! -s "$FILE" ]; then
-                        echo "ERROR: $FILE is empty!"
+                        # Ensure it is executable
+                        if [ ! -x build-container.sh ]; then
+                            echo "Making build-container.sh executable"
+                            chmod +x build-container.sh
+                        fi
+
+                        # Optional: check for syntax errors
+                        bash -n build-container.sh || { echo "Syntax error in build-container.sh"; exit 1; }
+
+                        echo "Shell script dependency check passed."
+                    else
+                        echo "ERROR: build-container.sh not found!"
                         exit 1
                     fi
-                done
-
-                echo "All .bat files exist and are non-empty."
-            else
-                echo "WARNING: No .bat files found in the project."
-            fi
-        '''
-    }
-}
+                '''
+            }
+        }
         stage('Deliver') {
             steps {
                 echo 'Deliver....'
