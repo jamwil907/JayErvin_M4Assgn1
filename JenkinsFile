@@ -1,0 +1,20 @@
+pipeline {
+    agent any
+
+    triggers {
+        cron('H H * * *')   // Runs once daily at a stable randomized time
+        // Alternative fixed time (midnight): cron('0 0 * * *')
+    }
+        options {
+        timeout(time: 60, unit: 'SECONDS')
+        }
+    stages {
+        stage('Checkout') {
+            steps {
+                git 'https://github.com/jamwil907/JayErvin_M4Assgn1.git' // gitlab repository that utilizes php
+                }
+    }
+        stage('Deliver') {
+            steps {
+                echo 'Deliver....'
+                sh '''
