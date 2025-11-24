@@ -44,21 +44,20 @@ pipeline {
         stage('Test') {
             steps {
                 sh '''
-                    echo "Running PHP test scripts..."
+                    echo "Running PHP test scripts in Docker..."
 
-                    # List of test scripts
-                    TEST_FILES="test_weather.php other_test.php"  # Add all your test files here
+                    TEST_FILES="test_weather.php other_test.php" # Add all your PHP test files here
 
                     for TEST in $TEST_FILES; do
                         if [ -f "$TEST" ]; then
                             echo "Running $TEST..."
-                            php "$TEST" || { echo "Test $TEST failed!"; exit 1; }
+                            docker run --rm -v "$PWD":/app -w /app php:8.2-cli php "$TEST" || { echo "Test $TEST failed!"; exit 1; }
                         else
                             echo "WARNING: Test file $TEST not found, skipping."
                         fi
                     done
 
-                    echo "All tests completed successfully."
+                    echo "All PHP tests completed successfully."
                 '''
             }
         }
