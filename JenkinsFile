@@ -13,9 +13,9 @@ pipeline {
                 git 'https://github.com/jamwil907/JayErvin_M4Assgn1.git' // gitlab repository that utilizes php
                 }
     }
-        stage('Static Code Analysis - SonarQube') {
+        stage('Static Code Analysis') {
             steps {
-                withSonarQubeEnv('SonarQube') {       // Name of your SonarQube server in Jenkins
+                withSonarQubeEnv('SonarQube') {       //Using Sonarqube
                     sh '''
                         echo "Running SonarQube Analysis for Outcast..."
                         sonar-scanner \
