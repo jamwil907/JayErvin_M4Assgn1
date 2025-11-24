@@ -13,17 +13,17 @@ pipeline {
                 git 'https://github.com/jamwil907/JayErvin_M4Assgn1.git' // gitlab repository that utilizes php
                 }
     }
-        stage('Static Code Analysis') {
-            steps {
-                withSonarQubeEnv('Sonar') {       //Using Sonarqube
-                    sh '''
-                        echo "Running SonarQube Analysis for Outcast..."
-                        sonar-scanner -Dsonar.projectName=JayErvin_M4Assgn1 -Dsonar.projectkey=JayErvin_M4Assgn1
-                    '''
-                }
-            }
-        }
-
+#        stage('Static Code Analysis') {
+#            steps {
+#                withSonarQubeEnv('Sonar') {       //Using Sonarqube
+#                    sh '''
+#                        echo "Running SonarQube Analysis for Outcast..."
+#                        sonar-scanner -Dsonar.projectName=JayErvin_M4Assgn1 -Dsonar.projectkey=JayErvin_M4Assgn1
+#                    '''
+#                }
+#            }
+#        }
+#
         stage('Deliver') {
             steps {
                 echo 'Deliver....'
