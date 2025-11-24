@@ -1,10 +1,5 @@
 pipeline {
     agent any
-
-    triggers {
-        cron('H H * * *')   // Runs once daily at a stable randomized time
-        // Alternative fixed time (midnight): cron('0 0 * * *')
-    }
         options {
         timeout(time: 60, unit: 'SECONDS')
         }
@@ -18,3 +13,9 @@ pipeline {
             steps {
                 echo 'Deliver....'
                 sh '''
+                echo "package delivery.."
+                '''
+            }
+        }
+    }
+}
