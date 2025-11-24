@@ -13,6 +13,20 @@ pipeline {
                 git 'https://github.com/jamwil907/JayErvin_M4Assgn1.git' // gitlab repository that utilizes php
                 }
     }
+        stage('Static Code Analysis - SonarQube') {
+            steps {
+                withSonarQubeEnv('SonarQube') {       // Name of your SonarQube server in Jenkins
+                    sh '''
+                        echo "Running SonarQube Analysis for Outcast..."
+                        sonar-scanner \
+                          -Dsonar.projectKey=Outcast \
+                          -Dsonar.projectName=Outcast \
+                          -Dsonar.sources=. \
+                          -Dsonar.sourceEncoding=UTF-8
+                    '''
+                }
+            }
+        }
         stage('Deliver') {
             steps {
                 echo 'Deliver....'
