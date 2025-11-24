@@ -15,14 +15,10 @@ pipeline {
     }
         stage('Static Code Analysis') {
             steps {
-                withSonarQubeEnv('SonarQube') {       //Using Sonarqube
+                withSonarQubeEnv('Sonar') {       //Using Sonarqube
                     sh '''
                         echo "Running SonarQube Analysis for Outcast..."
-                        sonar-scanner \
-                          -Dsonar.projectKey=Outcast \
-                          -Dsonar.projectName=Outcast \
-                          -Dsonar.sources=. \
-                          -Dsonar.sourceEncoding=UTF-8
+                        sonar-scanner -Dsonar.projectName=Outcast -Dsonar.projectkey=Outcast
                     '''
                 }
             }
