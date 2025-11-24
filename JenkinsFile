@@ -39,10 +39,25 @@ stage('BAT Dependency Check') {
         '''
     }
 }
-stage('Deliver') {
-    steps {
-        echo 'Running build checks and building Docker container...'
-        sh './build-container.sh'
-        sh 'docker build -t outcast-app:latest .'
+        stage('Deliver') {
+            steps {
+                echo 'Running build script and building Docker container...'
+                
+                // Run the shell build script
+                sh './build-container.sh'
+                
+                // Build Docker container from current directory
+                sh 'docker build -t outcast-app:latest .'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Pipeline completed successfully!"
+        }
+        failure {
+            echo "Pipeline failed. Check logs for errors."
+        }
     }
 }
