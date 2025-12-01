@@ -77,34 +77,22 @@ pipeline {
             }
         }
 
-        stage('Static Analysis (Portable PHP Lint)') {
+        stage('Static Analysis (PHP Lint in Docker)') {
+            agent {
+                docker {
+                    image 'php:8.2-cli'
+                    args '-u root:root'
+                }
+            }
             steps {
                 script { startStage('Static Analysis') }
                 sh '''
-                    echo "Preparing portable PHP..."
-
-                    mkdir -p tools
-
-                    # Download a precompiled PHP binary if not already present
-                    if [ ! -f tools/php ]; then
-                        echo "Downloading PHP portable binary..."
-                        curl -L -o tools/php.tar.gz https://www.php.net/distributions/php-8.2.12.tar.gz
-
-                        echo "Extracting PHP..."
-                        tar -xf tools/php.tar.gz -C tools
-
-                        # Locate the php binary inside extracted folder
-                        PHP_BIN=$(find tools -type f -name php | head -n 1)
-                        cp "$PHP_BIN" tools/php
-                        chmod +x tools/php
-                    fi
-
-                    echo "Running PHP lint checks..."
+                    echo "Running PHP lint checks in Docker..."
 
                     if ls *.php >/dev/null 2>&1; then
                         for file in *.php; do
                             echo "Linting $file"
-                            tools/php -l "$file" || { echo "PHP syntax error in $file"; exit 1; }
+                            php -l "$file" || { echo "PHP syntax error in $file"; exit 1; }
                         done
                     else
                         echo "No PHP files found to lint."
