@@ -1,6 +1,7 @@
 #!/bin/bash
 # OutCast build script - nightly/weekly build checks
 
+unset DOCKER_HOST
 set -e
 
 echo "=== PHP Lint ==="
