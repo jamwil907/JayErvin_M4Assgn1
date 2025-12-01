@@ -84,7 +84,12 @@ pipeline {
                 '''
             }
         }
-
+        stage('Monitoring') {
+            steps {
+                sh '''
+                    echo "Monitoring available at: ${JENKINS_URL}monitoring"
+            }
+        }
         stage('Deliver') {
             steps {
                 echo 'Deliver....'
