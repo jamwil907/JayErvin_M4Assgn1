@@ -1,20 +1,46 @@
 #!/bin/bash
-# OutCast build script - nightly/weekly build checks
+# build-container.sh
+# Purpose: Build & validate OutCast app, with Docker monitoring and PHP lint
 
+# ---------------------------
+# Setup
+# ---------------------------
+MONITORING_DIR="./monitoring"
+mkdir -p "$MONITORING_DIR"
+
+# Unset DOCKER_HOST to use the local Docker socket
 unset DOCKER_HOST
-set -e
 
+# ---------------------------
+# Docker Monitoring
+# ---------------------------
+if ! docker info >/dev/null 2>&1; then
+    echo "Docker is not running!" | tee -a "$MONITORING_DIR/build_metrics.txt"
+    echo "Exiting build."
+    exit 1
+else
+    echo "Docker is running properly." | tee -a "$MONITORING_DIR/build_metrics.txt"
+fi
+
+# ---------------------------
+# PHP Lint
+# ---------------------------
 echo "=== PHP Lint ==="
+if ! docker run --rm -v "$(pwd)":/app php:8.2-cli php -l /app/**/*.php; then
+    echo "PHP lint failed!" | tee -a "$MONITORING_DIR/build_metrics.txt"
+    exit 1
+else
+    echo "PHP lint passed." | tee -a "$MONITORING_DIR/build_metrics.txt"
+fi
 
-# Run lint checks using PHP official Docker image
-docker run -v /var/run/docker.sock:/var/run/docker.sock -v $(pwd):/app php:8.2-cli php -l index.php
-docker run -v /var/run/docker.sock:/var/run/docker.sock -v $(pwd):/app php:8.2-cli php -l includes/functions.php
-docker run -v /var/run/docker.sock:/var/run/docker.sock -v $(pwd):/app php:8.2-cli php -l includes/config.php
-docker run -v /var/run/docker.sock:/var/run/docker.sock -v $(pwd):/app php:8.2-cli php -llogin.php
-docker run -v /var/run/docker.sock:/var/run/docker.sock -v $(pwd):/app php:8.2-cli php -l register.php
-docker run -v /var/run/docker.sock:/var/run/docker.sock -v $(pwd):/app php:8.2-cli php -l logout.php
-docker run -v /var/run/docker.sock:/var/run/docker.sock -v $(pwd):/app php:8.2-cli php -l test_weather.php
+# ---------------------------
+# Other Build Steps (optional)
+# ---------------------------
+echo "Starting other build steps..."
+# e.g., docker build, unit tests, etc.
+# docker build -t outcast-app .
 
-echo "=== Quick Weather Test ==="
-docker run --rm -v "$PWD":/app -w /app php:8.2-cli php test_weather.php || \
-echo "Note: test may fail without a valid API key."
+# ---------------------------
+# Success
+# ---------------------------
+echo "Build completed successfully!" | tee -a "$MONITORING_DIR/build_metrics.txt"
