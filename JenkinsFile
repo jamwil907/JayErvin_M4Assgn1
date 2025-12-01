@@ -77,16 +77,33 @@ pipeline {
             }
         }
 
-        stage('Static Analysis (Linting in Docker)') {
-            agent {
-                docker {
-                    image 'php:8.2-cli'
-                    args '-u root:root'
-                }
-            }
+        stage('Static Analysis (PHP Lint)') {
             steps {
                 script { startStage('Static Analysis') }
                 sh '''
+                    echo "Checking for PHP installation..."
+
+                    if ! command -v php >/dev/null 2>&1; then
+                        echo "PHP not found. Installing PHP CLI using sudo..."
+
+                        # Debian/Ubuntu
+                        if [ -f /etc/debian_version ]; then
+                            sudo apt-get update -y
+                            sudo apt-get install -y php-cli
+                        fi
+
+                        # RedHat/CentOS
+                        if [ -f /etc/redhat-release ]; then
+                            sudo yum install -y epel-release
+                            sudo yum install -y php-cli
+                        fi
+
+                        # Alpine (Jenkins in Docker)
+                        if [ -f /etc/alpine-release ]; then
+                            sudo apk add --no-cache php-cli
+                        fi
+                    fi
+
                     echo "Running PHP lint checks..."
 
                     if ls *.php >/dev/null 2>&1; then
