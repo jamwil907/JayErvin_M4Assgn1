@@ -85,4 +85,68 @@ pipeline {
                         for file in *.php; do
                             echo "Linting $file"
                             php -l "$file" || { echo "PHP syntax error in $file"; exit 1; }
-                            echo "Linted $file at $(date)" >>
+                            echo "Linted $file at $(date)" >> logs/pipeline.log
+                        done
+                    else
+                        echo "No PHP files found to lint."
+                        echo "No PHP files found at $(date)" >> logs/pipeline.log
+                    fi
+                '''
+                script { endStage('Static Analysis') }
+            }
+        }
+
+        stage('Test Build Script') {
+            steps {
+                script { startStage('Test Build Script') }
+                sh '''
+                    echo "Testing build-container.sh..."
+                    if [ ! -f build-container.sh ]; then exit 1; fi
+                    if [ ! -x build-container.sh ]; then chmod +x build-container.sh; fi
+                    bash -n build-container.sh || { echo "Syntax error"; exit 1; }
+                    bash build-container.sh || { echo "Build failed"; exit 1; }
+                    echo "Build script tested at $(date)" >> logs/pipeline.log
+                '''
+                script { endStage('Test Build Script') }
+            }
+        }
+
+        stage('Deliver') {
+            steps {
+                script { startStage('Deliver') }
+                sh 'echo "Package delivery done at $(date)" >> logs/pipeline.log'
+                script { endStage('Deliver') }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Pipeline completed successfully!"
+        }
+        failure {
+            echo "Pipeline failed. Check the logs for errors."
+        }
+        always {
+            echo "Module 6 Enhancement tests."
+            archiveArtifacts artifacts: 'logs/**/*.log', allowEmptyArchive: true
+            echo "Total build duration: ${currentBuild.durationString}"
+            echo "System Metrics snapshot: ${MONITOR_URL}/metrics"
+        }
+    }
+}
+
+/*******************************************************
+  Shared timing functions for monitoring pipeline stages
+********************************************************/
+def stageStartTime = 0
+
+def startStage(name) {
+    stageStartTime = System.currentTimeMillis()
+    echo "⏱ Starting stage: ${name}"
+}
+
+def endStage(name) {
+    def elapsed = (System.currentTimeMillis() - stageStartTime) / 1000
+    echo "⏱ Stage '${name}' completed in ${elapsed} seconds"
+}
