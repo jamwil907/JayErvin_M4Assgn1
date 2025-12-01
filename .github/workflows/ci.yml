@@ -1,0 +1,26 @@
+name: PHP CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.0'         # or whichever version you use
+          coverage: xdebug           # to enable coverage
+      - name: Install dependencies
+        run: |
+          # e.g. if you have composer
+          # composer install
+          echo "No composer dependencies"
+      - name: Run tests
+        run: |
+          php test_weather.php       # or other test commands
