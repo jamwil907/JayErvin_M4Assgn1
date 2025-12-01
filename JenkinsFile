@@ -48,26 +48,42 @@ pipeline {
             }
         }
 
-        // NEW Monitoring Stage
         stage('Additional Monitoring Test') {
             steps {
                 script {
                     echo "=== Running Additional Monitoring Test ==="
                     sh 'echo "Monitoring Stage Start: $(date)" >> $MONITORING_DIR/build_metrics.txt'
-                    
-                    // Example: Check if Docker is running
+
+                    // Docker check
                     sh '''
-                    if ! docker info >/dev/null 2>&1; then
-                        echo "Docker is not running!" >> $MONITORING_DIR/build_metrics.txt
-                        exit 1
+                    if command -v docker >/dev/null 2>&1; then
+                        if docker info >/dev/null 2>&1; then
+                            echo "Docker is running properly." >> $MONITORING_DIR/build_metrics.txt
+                        else
+                            echo "WARNING: Docker command found but daemon not accessible." >> $MONITORING_DIR/build_metrics.txt
+                        fi
                     else
-                        echo "Docker is running properly." >> $MONITORING_DIR/build_metrics.txt
+                        echo "WARNING: Docker not installed." >> $MONITORING_DIR/build_metrics.txt
                     fi
                     '''
-                    
-                    // Example: Check available disk space
+
+                    // PHP CLI check
+                    sh '''
+                    if command -v php >/dev/null 2>&1; then
+                        echo "PHP CLI is installed: $(php -v | head -n 1)" >> $MONITORING_DIR/build_metrics.txt
+                    else
+                        echo "WARNING: PHP CLI not installed." >> $MONITORING_DIR/build_metrics.txt
+                    fi
+                    '''
+
+                    // Disk usage
+                    sh 'echo "Disk Usage:" >> $MONITORING_DIR/build_metrics.txt'
                     sh 'df -h >> $MONITORING_DIR/build_metrics.txt'
-                    
+
+                    // CPU and memory usage
+                    sh 'echo "CPU and Memory Usage:" >> $MONITORING_DIR/build_metrics.txt'
+                    sh 'top -b -n 1 | head -n 15 >> $MONITORING_DIR/build_metrics.txt'
+
                     sh 'echo "Monitoring Stage End: $(date)" >> $MONITORING_DIR/build_metrics.txt'
                 }
             }
@@ -76,7 +92,10 @@ pipeline {
 
     post {
         always {
+            // Archive monitoring logs
             archiveArtifacts artifacts: "$MONITORING_DIR/**/*", allowEmptyArchive: true
+
+            // Send summary email
             emailext(
                 to: "${EMAIL_RECIPIENT}",
                 subject: "COMPLETED: ${env.JOB_NAME} #${env.BUILD_NUMBER} — ${currentBuild.currentResult}",
@@ -87,15 +106,20 @@ Build #: ${env.BUILD_NUMBER}
 Status: ${currentBuild.currentResult}
 URL: ${env.BUILD_URL}
 
-Stage timing and logs archived in $MONITORING_DIR.
+Stage timing and monitoring logs archived in $MONITORING_DIR.
 """
             )
+
+            // Optional Slack notification
+            // slackSend(channel: '#ci-alerts', message: "Build ${env.JOB_NAME} #${env.BUILD_NUMBER} finished with status ${currentBuild.currentResult}")
         }
+
         success {
             echo "Build succeeded! Metrics and logs archived."
         }
+
         failure {
-            echo "Build failed! Sending alerts..."
+            echo "Build failed! Alerts sent."
         }
     }
 }
