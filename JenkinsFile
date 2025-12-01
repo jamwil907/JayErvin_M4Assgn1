@@ -8,7 +8,7 @@ pipeline {
     }
 
     triggers {
-        cron('0 8 * * *')
+        cron('0 8 * * *')   // Runs once a day
     }
 
     environment {
@@ -20,22 +20,21 @@ pipeline {
         stage('Initialize Workspace') {
             steps {
                 cleanWs()
+                // Ensure logs folder exists to prevent archiveArtifacts warnings
                 sh 'mkdir -p logs'
-                sh 'echo "Pipeline started at $(date)" > logs/pipeline.log'
             }
         }
 
         stage('Checkout') {
             steps {
                 git 'https://github.com/jamwil907/JayErvin_M4Assgn1.git'
-                sh 'echo "Checkout completed at $(date)" >> logs/pipeline.log'
             }
         }
 
         stage('Monitoring Info') {
             steps {
                 echo "📊 Jenkins Monitoring Dashboard: ${MONITOR_URL}"
-                sh 'echo "Monitoring info displayed at $(date)" >> logs/pipeline.log'
+                echo "Available: CPU load, GC activity, threads, deadlocks, executors, and HTTP metrics."
             }
         }
 
@@ -46,10 +45,12 @@ pipeline {
                     echo "Checking .sh file dependencies..."
                     if [ -f build-container.sh ]; then
                         echo "Found build-container.sh"
-                        if [ ! -x build-container.sh ]; then chmod +x build-container.sh; fi
+                        if [ ! -x build-container.sh ]; then
+                            echo "Making build-container.sh executable"
+                            chmod +x build-container.sh
+                        fi
                         bash -n build-container.sh || { echo "Syntax error in build-container.sh"; exit 1; }
                         echo "Shell script dependency check passed."
-                        echo "Shell script check passed at $(date)" >> logs/pipeline.log
                     else
                         echo "ERROR: build-container.sh not found!"
                         exit 1
@@ -65,11 +66,13 @@ pipeline {
                 sh '''
                     echo "=== Security Checks Stage ==="
                     if command -v composer >/dev/null 2>&1; then
-                        composer audit || true
-                        echo "Composer audit run at $(date)" >> logs/pipeline.log
+                        if [ "$DRY_RUN" = "true" ]; then
+                            echo "[DRY-RUN] composer audit"
+                        else
+                            composer audit || true
+                        fi
                     else
                         echo "Composer not available, skipping security checks"
-                        echo "Composer not found at $(date)" >> logs/pipeline.log
                     fi
                 '''
                 script { endStage('Security Checks') }
@@ -85,11 +88,9 @@ pipeline {
                         for file in *.php; do
                             echo "Linting $file"
                             php -l "$file" || { echo "PHP syntax error in $file"; exit 1; }
-                            echo "Linted $file at $(date)" >> logs/pipeline.log
                         done
                     else
                         echo "No PHP files found to lint."
-                        echo "No PHP files found at $(date)" >> logs/pipeline.log
                     fi
                 '''
                 script { endStage('Static Analysis') }
@@ -101,11 +102,18 @@ pipeline {
                 script { startStage('Test Build Script') }
                 sh '''
                     echo "Testing build-container.sh..."
-                    if [ ! -f build-container.sh ]; then exit 1; fi
-                    if [ ! -x build-container.sh ]; then chmod +x build-container.sh; fi
-                    bash -n build-container.sh || { echo "Syntax error"; exit 1; }
-                    bash build-container.sh || { echo "Build failed"; exit 1; }
-                    echo "Build script tested at $(date)" >> logs/pipeline.log
+                    if [ ! -f build-container.sh ]; then
+                        echo "ERROR: build-container.sh not found!"
+                        exit 1
+                    fi
+                    if [ ! -x build-container.sh ]; then
+                        echo "Making build-container.sh executable"
+                        chmod +x build-container.sh
+                    fi
+                    bash -n build-container.sh || { echo "Syntax error in build-container.sh"; exit 1; }
+                    echo "Running build-container.sh (dry-run)..."
+                    bash build-container.sh || { echo "build-container.sh failed!"; exit 1; }
+                    echo "build-container.sh test completed successfully!"
                 '''
                 script { endStage('Test Build Script') }
             }
@@ -114,7 +122,9 @@ pipeline {
         stage('Deliver') {
             steps {
                 script { startStage('Deliver') }
-                sh 'echo "Package delivery done at $(date)" >> logs/pipeline.log'
+                sh '''
+                    echo "package delivery.."
+                '''
                 script { endStage('Deliver') }
             }
         }
@@ -129,8 +139,14 @@ pipeline {
         }
         always {
             echo "Module 6 Enhancement tests."
+
+            // archive logs safely
             archiveArtifacts artifacts: 'logs/**/*.log', allowEmptyArchive: true
+
+            // monitor build duration
             echo "Total build duration: ${currentBuild.durationString}"
+
+            // capture system metrics snapshot
             echo "System Metrics snapshot: ${MONITOR_URL}/metrics"
         }
     }
