@@ -3,6 +3,7 @@ pipeline {
 
     environment {
         EMAIL_RECIPIENT = 'jamwil907@gmail.com'
+        MONITORING_DIR = 'monitoring'
     }
 
     stages {
@@ -15,9 +16,12 @@ pipeline {
         stage('Build Container') {
             steps {
                 script {
-                    // Assuming your build script is build-container.sh
+                    echo "=== Building Docker Container ==="
                     sh 'chmod +x build-container.sh'
+                    sh 'mkdir -p $MONITORING_DIR'
+                    sh 'echo "Build Container Stage Start: $(date)" >> $MONITORING_DIR/build_metrics.txt'
                     sh './build-container.sh'
+                    sh 'echo "Build Container Stage End: $(date)" >> $MONITORING_DIR/build_metrics.txt'
                 }
             }
         }
@@ -25,7 +29,10 @@ pipeline {
         stage('PHP Lint') {
             steps {
                 script {
+                    echo "=== Running PHP Lint ==="
+                    sh 'echo "PHP Lint Stage Start: $(date)" >> $MONITORING_DIR/build_metrics.txt'
                     sh 'find . -name "*.php" -exec php -l {} \\;'
+                    sh 'echo "PHP Lint Stage End: $(date)" >> $MONITORING_DIR/build_metrics.txt'
                 }
             }
         }
@@ -33,41 +40,43 @@ pipeline {
         stage('Run Tests') {
             steps {
                 script {
-                    // Adjust if you have specific tests
+                    echo "=== Running Tests ==="
+                    sh 'echo "Tests Stage Start: $(date)" >> $MONITORING_DIR/build_metrics.txt'
                     sh 'php test_weather.php'
+                    sh 'echo "Tests Stage End: $(date)" >> $MONITORING_DIR/build_metrics.txt'
+                }
+            }
+        }
+
+        // NEW Monitoring Stage
+        stage('Additional Monitoring Test') {
+            steps {
+                script {
+                    echo "=== Running Additional Monitoring Test ==="
+                    sh 'echo "Monitoring Stage Start: $(date)" >> $MONITORING_DIR/build_metrics.txt'
+                    
+                    // Example: Check if Docker is running
+                    sh '''
+                    if ! docker info >/dev/null 2>&1; then
+                        echo "Docker is not running!" >> $MONITORING_DIR/build_metrics.txt
+                        exit 1
+                    else
+                        echo "Docker is running properly." >> $MONITORING_DIR/build_metrics.txt
+                    fi
+                    '''
+                    
+                    // Example: Check available disk space
+                    sh 'df -h >> $MONITORING_DIR/build_metrics.txt'
+                    
+                    sh 'echo "Monitoring Stage End: $(date)" >> $MONITORING_DIR/build_metrics.txt'
                 }
             }
         }
     }
 
     post {
-        success {
-            emailext(
-                to: "${EMAIL_RECIPIENT}",
-                subject: "SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: """\
-Build SUCCESSFUL!
-Job: ${env.JOB_NAME}
-Build #: ${env.BUILD_NUMBER}
-Build URL: ${env.BUILD_URL}
-"""
-            )
-        }
-        failure {
-            emailext(
-                to: "${EMAIL_RECIPIENT}",
-                subject: "FAILURE: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: """\
-Build FAILED.
-Job: ${env.JOB_NAME}
-Build #: ${env.BUILD_NUMBER}
-Build URL: ${env.BUILD_URL}
-
-Check console output for details.
-"""
-            )
-        }
         always {
+            archiveArtifacts artifacts: "$MONITORING_DIR/**/*", allowEmptyArchive: true
             emailext(
                 to: "${EMAIL_RECIPIENT}",
                 subject: "COMPLETED: ${env.JOB_NAME} #${env.BUILD_NUMBER} — ${currentBuild.currentResult}",
@@ -77,8 +86,16 @@ Job: ${env.JOB_NAME}
 Build #: ${env.BUILD_NUMBER}
 Status: ${currentBuild.currentResult}
 URL: ${env.BUILD_URL}
+
+Stage timing and logs archived in $MONITORING_DIR.
 """
             )
+        }
+        success {
+            echo "Build succeeded! Metrics and logs archived."
+        }
+        failure {
+            echo "Build failed! Sending alerts..."
         }
     }
 }
