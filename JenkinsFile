@@ -122,3 +122,4 @@ Stage timing and monitoring logs archived in $MONITORING_DIR.
             echo "Build failed! Alerts sent."
         }
     }
+}
